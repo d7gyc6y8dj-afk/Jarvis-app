@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>J.A.R.V.I.S.</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
+
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Roboto Mono', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-image: radial-gradient(circle at center, #111 0%, #000 100%);
+        }
+
+        /* --- ИКОНКА ДЖАРВИСА (Черные дыры) --- */
+        .jarvis-icon-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px;
+            transition: all 0.3s ease;
+        }
+
+        .black-hole {
+            position: absolute;
+            background-color: #000;
+            border-radius: 50%;
+            box-shadow: 0 0 20px 2px rgba(80, 60, 50, 0.4); /* Тусклое свечение по умолчанию */
+            transition: box-shadow 0.3s ease;
+        }
+
+        .hole-1 {
+            width: 70px;
+            height: 70px;
+            left: 20px;
+            top: 50px;
+            z-index: 2;
+        }
+
+        .hole-2 {
+            width: 90px;
+            height: 90px;
+            right: 20px;
+            top: 70px;
+            z-index: 1;
+        }
+
+        /* Активное состояние (когда слушает или говорит) */
+        .jarvis-icon-container.active .black-hole {
+            box-shadow: 0 0 40px 10px rgba(180, 150, 120, 0.8), inset 0 0 20px rgba(180, 150, 120, 0.5); /* Тот самый оттенок */
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        /* --- ИНТЕРФЕЙС --- */
+        .container {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            background: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 8px;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        #status {
+            font-size: 14px;
+            color: #888;
+            min-height: 40px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        /* Кнопки */
+        button {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 15px 30px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            width: 100%;
+            max-width: 300px;
+            touch-action: none;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Кнопка микрофона */
+        #talkBtn {
+            border: 2px solid rgba(180, 150, 120, 0.5);
+            color: #d4c5b9;
+            padding: 25px;
+            font-size: 16px;
+            border-radius: 50px;
+        }
+
+        #talkBtn:active, #talkBtn.recording {
+            background: rgba(180, 150, 120, 0.2);
+            border-color: #d4c5b9;
+            box-shadow: 0 0 20px rgba(180, 150, 120, 0.4);
+            transform: scale(0.98);
+        }
+
+        /* Переключатель режима окон */
+        #windowModeBtn {
+            font-size: 11px;
+            padding: 10px;
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #666;
+        }
+
+        #windowModeBtn.active {
+            color: #fff;
+            border-color: #fff;
+        }
+
+        /* Игровое поле */
+        #game-board { 
+            display: none; 
+            grid-template-columns: repeat(3, 60px); 
+            gap: 5px; 
+            justify-content: center; 
+            margin-top: 20px;
+        }
+        
+        .cell { 
+            width: 60px; 
+            height: 60px; 
+            background: #111; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            font-size: 24px; 
+            color: #fff;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .cell:hover {
+            background: #222;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Графическая иконка -->
+    <div class="jarvis-icon-container" id="jarvisIcon">
+        <div class="black-hole hole-1"></div>
+        <div class="black-hole hole-2"></div>
+    </div>
+
+    <div class="container">
+        <h1>J.A.R.V.I.S.</h1>
+        <div id="status">Ожидание команды...</div>
+        
+        <div class="controls">
+            <button id="talkBtn">ЗАЖМИ И ГОВОРИ</button>
+            <button id="windowModeBtn">Режим окон: ВЫКЛ</button>
+        </div>
+
+        <div id="game-board">
+            <div class="cell" data-index="0"></div><div class="cell" data-index="1"></div><div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div><div class="cell" data-index="4"></div><div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div><div class="cell" data-index="7"></div><div class="cell" data-index="8"></div>
+        </div>
+    </div>
+
+    <script>
+        const talkBtn = document.getElementById('talkBtn');
+        const windowModeBtn = document.getElementById('windowModeBtn');
+        const statusText = document.getElementById('status');
+        const jarvisIcon = document.getElementById('jarvisIcon');
+        const gameBoard = document.getElementById('game-board');
+        const cells = document.querySelectorAll('.cell');
+
+        let isWindowMode = false;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synth = window.speechSynthesis;
+        let isGameActive = false;
+        let board = ["", "", "", "", "", "", "", "", ""];
+
+        windowModeBtn.addEventListener('click', () => {
+            isWindowMode = !isWindowMode;
+            windowModeBtn.textContent = isWindowMode ? "Режим окон: ВКЛ" : "Режим окон: ВЫКЛ";
+            windowModeBtn.classList.toggle('active');
+        });
+
+        function openLink(url) {
+            if (isWindowMode) {
+                window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes');
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+
+        function speak(text) {
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ru-RU';
+            
+            // Включаем подсветку, когда говорит
+            utterance.onstart = () => {
+                jarvisIcon.classList.add('active');
+                statusText.textContent = "Говорю...";
+            };
+            // Выключаем подсветку, когда замолкает
+            utterance.onend = () => {
+                jarvisIcon.classList.remove('active');
+                statusText.textContent = "Ожидание команды...";
+            };
+            
+            synth.speak(utterance);
+        }
+
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ru-RU';
+            recognition.interimResults = false;
+
+            function startRecording(e) {
+                if (e) e.preventDefault();
+                try { 
+                    recognition.start(); 
+                    talkBtn.classList.add('recording'); 
+                    talkBtn.textContent = "СЛУШАЮ..."; 
+                    statusText.textContent = "Слушаю...";
+                    jarvisIcon.classList.add('active'); // Подсветка при слушании
+                } catch(err) {}
+            }
+            
+            function stopRecording(e) {
+                if (e) e.preventDefault();
+                try { 
+                    recognition.stop(); 
+                    talkBtn.classList.remove('recording'); 
+                    talkBtn.textContent = "ЗАЖМИ И ГОВОРИ"; 
+                    jarvisIcon.classList.remove('active'); // Убираем подсветку, если ничего не сказал
+                } catch(err) {}
+            }
+
+            talkBtn.addEventListener('mousedown', startRecording);
+            talkBtn.addEventListener('mouseup', stopRecording);
+            talkBtn.addEventListener('mouseleave', stopRecording);
+            talkBtn.addEventListener('touchstart', startRecording, {passive: false});
+            talkBtn.addEventListener('touchend', stopRecording);
+
+            recognition.onresult = (event) => {
+                let command = event.results[0][0].transcript.toLowerCase();
+                statusText.textContent = `Вы: "${command}"`;
+
+                // (Логика команд оставлена без изменений)
+                if (command.includes('включи видео') || command.includes('найди видео')) {
+                    let videoName = command.replace('джарвис', '').replace('включи видео', '').replace('найди видео', '').replace('на ютубе', '').replace('в ютубе', '').trim();
+                    if (videoName) {
+                        speak(`Ищу видео ${videoName} на ютубе.`);
+                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2500);
+                    } else { speak("Какое видео найти?"); }
+                }
+                else if (command.includes('открой канал') || command.includes('канал на ютубе')) {
+                    let channelName = command.replace('джарвис', '').replace('открой канал', '').replace('на ютубе', '').replace('канал', '').trim();
+                    if (channelName) {
+                        speak(`Открываю канал ${channelName}.`);
+                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2500);
+                    } else { speak("Какой канал открыть?"); }
+                }
+                else if (command.includes('видео в вк') || command.includes('включи в вк')) {
+                    let vkVideo = command.replace('джарвис', '').replace('видео в вк', '').replace('включи в вк', '').trim();
+                    if (vkVideo) {
+                        speak(`Ищу видео ${vkVideo} во ВКонтакте.`);
+                        setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2500);
+                    } else { speak("Какое видео искать?"); }
+                }
+                else if (command.includes('рутуб')) {
+                    let rutubeSearch = command.replace('джарвис', '').replace('открой рутуб', '').replace('найди на рутубе', '').replace('рутуб', '').trim();
+                    if (rutubeSearch) {
+                        speak(`Ищу ${rutubeSearch} на Рутубе.`);
+                        setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2500);
+                    } else { speak("Открываю Рутуб."); openLink('https://rutube.ru'); }
+                }
+                else if (command.includes('открой ютуб')) { speak("Открываю."); openLink('https://youtube.com'); }
+                else if (command.includes('открой вк')) { speak("Открываю."); openLink('https://vk.com'); }
+                else if (command.includes('расскажи о') || command.includes('расскажи про') || command.includes('что такое')) {
+                    let topic = command.replace('джарвис', '').replace('расскажи о', '').replace('расскажи про', '').replace('что такое', '').trim();
+                    if (topic) {
+                        speak(`Открываю информацию.`);
+                        setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2500);
+                    } else { speak("О чем рассказать?"); }
+                }
+                else if (command.includes('включи музыку')) {
+                    let song = command.replace('джарвис', '').replace('включи музыку', '').trim();
+                    if (song) {
+                        speak(`Ищу ${song}.`);
+                        setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2500);
+                    } else { speak("Какую песню включить?"); }
+                }
+                else if (command.includes('время')) { speak(`Сейчас ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`); }
+                else if (command.includes('кубик')) { speak(`Выпало ${Math.floor(Math.random() * 6) + 1}`); }
+                else if (command.includes('поиграем') || command.includes('крестики-нолики')) { 
+                    board = ["", "", "", "", "", "", "", "", ""]; isGameActive = true;
+                    cells.forEach((cell, i) => { cell.textContent = ""; });
+                    gameBoard.style.display = "grid";
+                    speak("Ваш ход. Назовите клетку.");
+                }
+                else if (isGameActive) {
+                    let index = -1;
+                    if (command.includes('верхняя левая')) index = 0;
+                    else if (command.includes('верхняя средняя')) index = 1;
+                    else if (command.includes('верхняя правая')) index = 2;
+                    else if (command.includes('средняя левая')) index = 3;
+                    else if (command.includes('центр')) index = 4;
+                    else if (command.includes('средняя правая')) index = 5;
+                    else if (command.includes('нижняя левая')) index = 6;
+                    else if (command.includes('нижняя средняя')) index = 7;
+                    else if (command.includes('нижняя правая')) index = 8;
+
+                    if (index !== -1 && board[index] === "") {
+                        board[index] = "X"; cells[index].textContent = "X";
+                        if (!checkWin("X")) { makeAiMove(); }
+                        checkGameEnd();
+                    }
+                }
+                else if (command.includes('привет')) { speak("Здравствуйте, сэр."); }
+                else { speak("Команда не распознана."); }
+            };
+            recognition.onerror = () => { 
+                talkBtn.classList.remove('recording'); 
+                talkBtn.textContent = "ЗАЖМИ И ГОВОРИ"; 
+                jarvisIcon.classList.remove('active');
+            };
+        }
+
+        function makeAiMove() {
+            for (let i = 0; i < 9; i++) { if (board[i] === "") { board[i] = "O"; if (checkWin("O")) { cells[i].textContent = "O"; return; } board[i] = ""; } }
+            for (let i = 0; i < 9; i++) { if (board[i] === "") { board[i] = "X"; if (checkWin("X")) { board[i] = "O"; cells[i].textContent = "O"; return; } board[i] = ""; } }
+            if (board[4] === "") { board[4] = "O"; cells[4].textContent = "O"; return; }
+            let empty = board.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+            if (empty.length > 0) { let r = empty[Math.floor(Math.random() * empty.length)]; board[r] = "O"; cells[r].textContent = "O"; }
+        }
+        function checkWin(p) {
+            const w = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]];
+            return w.some(v => v.every(i => board[i] === p));
+        }
+        function checkGameEnd() {
+            if (checkWin("X")) { speak("Вы победили!"); isGameActive = false; }
+            else if (checkWin("O")) { speak("Я победил."); isGameActive = false; }
+            else if (board.every(c => c !== "")) { speak("Ничья."); isGameActive = false; }
+        }
+        cells.forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (!isGameActive) return;
+                let index = parseInt(cell.dataset.index);
+                if (board[index] === "") {
+                    board[index] = "X"; cell.textContent = "X";
+                    if (!checkWin("X")) { makeAiMove(); }
+                    checkGameEnd();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
