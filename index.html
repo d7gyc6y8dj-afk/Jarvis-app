@@ -13,7 +13,6 @@
         .hole-1 { width: 70px; height: 70px; left: 20px; top: 50px; z-index: 2; }
         .hole-2 { width: 90px; height: 90px; right: 20px; top: 70px; z-index: 1; }
         
-        /* Свечение при прослушивании или разговоре */
         .jarvis-icon-container.active .black-hole { 
             box-shadow: 0 0 40px 10px rgba(180, 150, 120, 0.9), inset 0 0 20px rgba(180, 150, 120, 0.5); 
             animation: pulse 1.5s infinite alternate; 
@@ -27,10 +26,7 @@
         
         button { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 15px 30px; font-family: 'Roboto Mono', monospace; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; width: 100%; max-width: 300px; }
         
-        /* Кнопка в обычном режиме */
         #talkBtn { border: 2px solid rgba(180, 150, 120, 0.5); color: #d4c5b9; padding: 25px; font-size: 16px; border-radius: 50px; }
-        
-        /* Кнопка в режиме прослушивания (тот же цвет, но ярче, без красного) */
         #talkBtn.listening { 
             background: rgba(180, 150, 120, 0.15); 
             border-color: rgba(180, 150, 120, 0.9); 
@@ -42,7 +38,6 @@
         #windowModeBtn.active { color: #fff; border-color: #fff; }
         #game-board { display: none; grid-template-columns: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 20px; }
         .cell { width: 60px; height: 60px; background: #111; border: 1px solid rgba(255,255,255,0.1); font-size: 24px; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
-        .cell:hover { background: #222; }
     </style>
 </head>
 <body>
@@ -76,10 +71,11 @@
 
         let isWindowMode = false;
         let isListening = false;
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const synth = window.speechSynthesis;
         let isGameActive = false;
         let board = ["", "", "", "", "", "", "", "", ""];
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synth = window.speechSynthesis;
 
         windowModeBtn.addEventListener('click', () => {
             isWindowMode = !isWindowMode;
@@ -101,7 +97,6 @@
             
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ru-RU';
-            
             const voices = synth.getVoices();
             const ruVoice = voices.find(v => v.lang.includes('ru'));
             if (ruVoice) utterance.voice = ruVoice;
@@ -114,7 +109,6 @@
                 jarvisIcon.classList.remove('active');
                 if(!isListening) statusText.textContent = "Ожидание...";
             };
-            
             synth.speak(utterance);
         }
 
@@ -124,39 +118,35 @@
             recognition.interimResults = false;
             recognition.continuous = false;
 
+            // Если пользователь нажал на кнопку
             talkBtn.addEventListener('click', () => {
-                if (isListening) {
-                    recognition.stop();
-                    isListening = false;
-                    talkBtn.textContent = "НАЖМИ И ГОВОРИ";
-                    talkBtn.classList.remove('listening');
-                    statusText.textContent = "Обрабатываю...";
-                    jarvisIcon.classList.remove('active');
-                } else {
-                    try {
-                        recognition.start();
-                        isListening = true;
-                        talkBtn.textContent = "ГОВОРИ... (СТОП)";
-                        talkBtn.classList.add('listening');
-                        statusText.textContent = "Слушаю тебя...";
-                        jarvisIcon.classList.add('active');
-                        
-                        const unlock = new SpeechSynthesisUtterance('');
-                        unlock.volume = 0;
-                        synth.speak(unlock);
-                    } catch(e) {
-                        statusText.textContent = "Ошибка. Подожди секунду.";
-                    }
+                if (isListening) return; // Если уже слушаем, игнорируем клик
+
+                try {
+                    recognition.start();
+                    isListening = true;
+                    talkBtn.textContent = "СЛУШАЮ...";
+                    talkBtn.classList.add('listening');
+                    statusText.textContent = "Говори...";
+                    jarvisIcon.classList.add('active');
+                    
+                    const unlock = new SpeechSynthesisUtterance('');
+                    unlock.volume = 0;
+                    synth.speak(unlock);
+                } catch(e) {
+                    statusText.textContent = "Ошибка. Подожди секунду.";
                 }
             });
 
+            // Когда распознал текст
             recognition.onresult = (event) => {
                 let command = event.results[0][0].transcript.toLowerCase();
                 statusText.textContent = `Вы: "${command}"`;
+                
                 isListening = false;
                 talkBtn.textContent = "НАЖМИ И ГОВОРИ";
                 talkBtn.classList.remove('listening');
-                jarvisIcon.classList.remove('active'); // Выключаем свечение после ответа
+                jarvisIcon.classList.remove('active');
 
                 if (command.includes('привет') || command.includes('здравствуй')) {
                     speak("Здравствуйте, сэр. Системы в норме.");
@@ -210,6 +200,15 @@
                 else { speak("Не распознал."); }
             };
             
+            // Если запись остановилась сама (из-за тишины)
+            recognition.onend = () => {
+                isListening = false;
+                talkBtn.classList.remove('listening'); 
+                talkBtn.textContent = "НАЖМИ И ГОВОРИ"; 
+                jarvisIcon.classList.remove('active');
+            };
+
+            // Если произошла ошибка (например, нет разрешения)
             recognition.onerror = (event) => { 
                 isListening = false;
                 talkBtn.classList.remove('listening'); 
@@ -217,16 +216,10 @@
                 jarvisIcon.classList.remove('active');
                 if (event.error === 'not-allowed') {
                     statusText.textContent = "Разреши доступ к микрофону!";
+                } else if (event.error === 'no-speech') {
+                    statusText.textContent = "Я ничего не услышал. Попробуй еще раз.";
                 } else {
                     statusText.textContent = "Ошибка. Нажми еще раз.";
-                }
-            };
-            recognition.onend = () => {
-                if(isListening) {
-                    isListening = false;
-                    talkBtn.classList.remove('listening'); 
-                    talkBtn.textContent = "НАЖМИ И ГОВОРИ"; 
-                    jarvisIcon.classList.remove('active');
                 }
             }
         }
