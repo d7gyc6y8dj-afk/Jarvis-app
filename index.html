@@ -97,9 +97,17 @@
             
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ru-RU';
+            
+            // Настройка голоса
             const voices = synth.getVoices();
-            const ruVoice = voices.find(v => v.lang.includes('ru'));
-            if (ruVoice) utterance.voice = ruVoice;
+            const ruVoices = voices.filter(v => v.lang.includes('ru'));
+            const maleVoice = ruVoices.find(v => v.name.includes('Yuri') || v.name.includes('Юрий') || v.name.includes('Pavel') || v.name.includes('Павел'));
+            
+            if (maleVoice) utterance.voice = maleVoice;
+            else if (ruVoices.length > 0) utterance.voice = ruVoices[0];
+
+            utterance.pitch = 0.8; 
+            utterance.rate = 0.9;  
 
             utterance.onstart = () => {
                 jarvisIcon.classList.add('active');
@@ -118,9 +126,8 @@
             recognition.interimResults = false;
             recognition.continuous = false;
 
-            // Если пользователь нажал на кнопку
             talkBtn.addEventListener('click', () => {
-                if (isListening) return; // Если уже слушаем, игнорируем клик
+                if (isListening) return; // Защита от двойного клика
 
                 try {
                     recognition.start();
@@ -138,7 +145,6 @@
                 }
             });
 
-            // Когда распознал текст
             recognition.onresult = (event) => {
                 let command = event.results[0][0].transcript.toLowerCase();
                 statusText.textContent = `Вы: "${command}"`;
@@ -148,43 +154,62 @@
                 talkBtn.classList.remove('listening');
                 jarvisIcon.classList.remove('active');
 
-                if (command.includes('привет') || command.includes('здравствуй')) {
+                // --- ВСЕ КОМАНДЫ ---
+
+                // 1. ПОГОДА В АНАДЫРЕ
+                if (command.includes('погода') || command.includes('погоду')) {
+                    speak("Открываю прогноз погоды в Анадыре.");
+                    setTimeout(() => { openLink('https://yandex.ru/pogoda/anadyr'); }, 2000);
+                }
+                // 2. ПРИВЕТСТВИЕ
+                else if (command.includes('привет') || command.includes('здравствуй')) {
                     speak("Здравствуйте, сэр. Системы в норме.");
                 }
+                // 3. ВИДЕО НА YOUTUBE
                 else if (command.includes('включи видео') || command.includes('найди видео')) {
                     let videoName = command.replace('джарвис', '').replace('включи видео', '').replace('найди видео', '').replace('на ютубе', '').replace('в ютубе', '').trim();
-                    if (videoName) { speak(`Ищу видео ${videoName}.`); setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2500); } else { speak("Какое видео?"); }
+                    if (videoName) { speak(`Ищу видео ${videoName}.`); setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2000); } else { speak("Какое видео найти?"); }
                 }
+                // 4. КАНАЛ НА YOUTUBE
                 else if (command.includes('открой канал')) {
                     let channelName = command.replace('джарвис', '').replace('открой канал', '').replace('на ютубе', '').trim();
-                    if (channelName) { speak(`Открываю канал ${channelName}.`); setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2500); } else { speak("Какой канал?"); }
+                    if (channelName) { speak(`Открываю канал ${channelName}.`); setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2000); } else { speak("Какой канал?"); }
                 }
+                // 5. ВИДЕО В ВК
                 else if (command.includes('видео в вк')) {
                     let vkVideo = command.replace('джарвис', '').replace('видео в вк', '').trim();
-                    if (vkVideo) { speak(`Ищу ${vkVideo} во ВКонтакте.`); setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2500); } else { speak("Какое видео?"); }
+                    if (vkVideo) { speak(`Ищу ${vkVideo} во ВКонтакте.`); setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2000); } else { speak("Какое видео?"); }
                 }
+                // 6. РУТУБ
                 else if (command.includes('рутуб')) {
                     let rutubeSearch = command.replace('джарвис', '').replace('открой рутуб', '').replace('найди на рутубе', '').replace('рутуб', '').trim();
-                    if (rutubeSearch) { speak(`Ищу ${rutubeSearch} на Рутубе.`); setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2500); } else { speak("Открываю Рутуб."); openLink('https://rutube.ru'); }
+                    if (rutubeSearch) { speak(`Ищу ${rutubeSearch} на Рутубе.`); setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2000); } else { speak("Открываю Рутуб."); openLink('https://rutube.ru'); }
                 }
+                // 7. ПРОСТО ОТКРЫТЬ САЙТЫ
                 else if (command.includes('открой ютуб')) { speak("Открываю."); openLink('https://youtube.com'); }
                 else if (command.includes('открой вк')) { speak("Открываю."); openLink('https://vk.com'); }
+                // 8. РАССКАЖИ О...
                 else if (command.includes('расскажи о') || command.includes('расскажи про') || command.includes('что такое')) {
                     let topic = command.replace('джарвис', '').replace('расскажи о', '').replace('расскажи про', '').replace('что такое', '').trim();
-                    if (topic) { speak(`Открываю информацию.`); setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2500); } else { speak("О чем рассказать?"); }
+                    if (topic) { speak(`Открываю информацию.`); setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2000); } else { speak("О чем рассказать?"); }
                 }
+                // 9. МУЗЫКА
                 else if (command.includes('включи музыку')) {
                     let song = command.replace('джарвис', '').replace('включи музыку', '').trim();
-                    if (song) { speak(`Ищу ${song}.`); setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2500); } else { speak("Какую песню?"); }
+                    if (song) { speak(`Ищу ${song}.`); setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2000); } else { speak("Какую песню?"); }
                 }
+                // 10. ВРЕМЯ
                 else if (command.includes('время')) { speak(`Сейчас ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`); }
+                // 11. КУБИК
                 else if (command.includes('кубик')) { speak(`Выпало ${Math.floor(Math.random() * 6) + 1}`); }
+                // 12. ИГРА
                 else if (command.includes('поиграем') || command.includes('крестики-нолики')) { 
                     board = ["", "", "", "", "", "", "", "", ""]; isGameActive = true;
                     cells.forEach((cell, i) => { cell.textContent = ""; });
                     gameBoard.style.display = "grid";
                     speak("Ваш ход. Назовите клетку.");
                 }
+                // 13. ХОДЫ В ИГРЕ
                 else if (isGameActive) {
                     let index = -1;
                     if (command.includes('верхняя левая')) index = 0; else if (command.includes('верхняя средняя')) index = 1; else if (command.includes('верхняя правая')) index = 2;
@@ -197,10 +222,10 @@
                         checkGameEnd();
                     }
                 }
-                else { speak("Не распознал."); }
+                // 14. НЕ РАСПОЗНАЛ
+                else { speak("Команда не распознана."); }
             };
             
-            // Если запись остановилась сама (из-за тишины)
             recognition.onend = () => {
                 isListening = false;
                 talkBtn.classList.remove('listening'); 
@@ -208,7 +233,6 @@
                 jarvisIcon.classList.remove('active');
             };
 
-            // Если произошла ошибка (например, нет разрешения)
             recognition.onerror = (event) => { 
                 isListening = false;
                 talkBtn.classList.remove('listening'); 
