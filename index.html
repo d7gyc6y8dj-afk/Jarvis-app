@@ -63,11 +63,13 @@
         let isGameActive = false;
         let board = ["", "", "", "", "", "", "", "", ""];
 
-        // Разблокировка звука для iOS (нужно вызвать при первом клике)
+        // Разблокировка звука (iOS)
         let audioUnlocked = false;
         function unlockAudio() {
             if (!audioUnlocked) {
+                // Создаем пустой звук и проигрываем его
                 const silentUtterance = new SpeechSynthesisUtterance('');
+                silentUtterance.volume = 0;
                 synth.speak(silentUtterance);
                 audioUnlocked = true;
             }
@@ -119,18 +121,16 @@
             function startRecording(e) {
                 if (e) e.preventDefault();
                 
-                // Разблокируем звук при первом же нажатии
+                // Говорим "Слушаю" при нажатии, чтобы разбудить звук на iPhone
                 unlockAudio();
+                speak("Слушаю");
 
                 try { 
                     recognition.start(); 
                     talkBtn.classList.add('recording'); 
                     talkBtn.textContent = "СЛУШАЮ..."; 
-                    statusText.textContent = "Говори...";
                     jarvisIcon.classList.add('active'); 
-                } catch(err) {
-                    statusText.textContent = "Ошибка. Нажми еще раз.";
-                }
+                } catch(err) {}
             }
             
             function stopRecording(e) {
@@ -159,28 +159,28 @@
                     let videoName = command.replace('джарвис', '').replace('включи видео', '').replace('найди видео', '').replace('на ютубе', '').replace('в ютубе', '').trim();
                     if (videoName) {
                         speak(`Ищу видео ${videoName} на ютубе.`);
-                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2000);
+                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2500);
                     } else { speak("Какое видео найти?"); }
                 }
                 else if (command.includes('открой канал')) {
                     let channelName = command.replace('джарвис', '').replace('открой канал', '').replace('на ютубе', '').trim();
                     if (channelName) {
                         speak(`Открываю канал ${channelName}.`);
-                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2000);
+                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2500);
                     } else { speak("Какой канал открыть?"); }
                 }
                 else if (command.includes('видео в вк')) {
                     let vkVideo = command.replace('джарвис', '').replace('видео в вк', '').trim();
                     if (vkVideo) {
                         speak(`Ищу видео ${vkVideo} во ВКонтакте.`);
-                        setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2000);
+                        setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2500);
                     } else { speak("Какое видео искать?"); }
                 }
                 else if (command.includes('рутуб')) {
                     let rutubeSearch = command.replace('джарвис', '').replace('открой рутуб', '').replace('найди на рутубе', '').replace('рутуб', '').trim();
                     if (rutubeSearch) {
                         speak(`Ищу ${rutubeSearch} на Рутубе.`);
-                        setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2000);
+                        setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2500);
                     } else { speak("Открываю Рутуб."); openLink('https://rutube.ru'); }
                 }
                 else if (command.includes('открой ютуб')) { speak("Открываю."); openLink('https://youtube.com'); }
@@ -189,14 +189,14 @@
                     let topic = command.replace('джарвис', '').replace('расскажи о', '').replace('расскажи про', '').replace('что такое', '').trim();
                     if (topic) {
                         speak(`Открываю информацию.`);
-                        setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2000);
+                        setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2500);
                     } else { speak("О чем рассказать?"); }
                 }
                 else if (command.includes('включи музыку')) {
                     let song = command.replace('джарвис', '').replace('включи музыку', '').trim();
                     if (song) {
                         speak(`Ищу ${song}.`);
-                        setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2000);
+                        setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2500);
                     } else { speak("Какую песню включить?"); }
                 }
                 else if (command.includes('время')) { 
