@@ -7,20 +7,37 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
         body { background-color: #050505; color: #fff; font-family: 'Roboto Mono', monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; user-select: none; -webkit-user-select: none; overflow: hidden; background-image: radial-gradient(circle at center, #111 0%, #000 100%); }
+        
         .jarvis-icon-container { position: relative; width: 200px; height: 200px; display: flex; justify-content: center; align-items: center; margin-bottom: 40px; transition: all 0.3s ease; }
         .black-hole { position: absolute; background-color: #000; border-radius: 50%; box-shadow: 0 0 20px 2px rgba(80, 60, 50, 0.4); transition: box-shadow 0.3s ease; }
         .hole-1 { width: 70px; height: 70px; left: 20px; top: 50px; z-index: 2; }
         .hole-2 { width: 90px; height: 90px; right: 20px; top: 70px; z-index: 1; }
-        .jarvis-icon-container.active .black-hole { box-shadow: 0 0 40px 10px rgba(180, 150, 120, 0.8), inset 0 0 20px rgba(180, 150, 120, 0.5); animation: pulse 1.5s infinite alternate; }
+        
+        /* Свечение при прослушивании или разговоре */
+        .jarvis-icon-container.active .black-hole { 
+            box-shadow: 0 0 40px 10px rgba(180, 150, 120, 0.9), inset 0 0 20px rgba(180, 150, 120, 0.5); 
+            animation: pulse 1.5s infinite alternate; 
+        }
         @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+        
         .container { border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 40px; background: rgba(15, 15, 15, 0.8); backdrop-filter: blur(10px); text-align: center; max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
         h1 { font-weight: 300; letter-spacing: 8px; margin: 0 0 10px 0; font-size: 24px; }
         #status { font-size: 14px; color: #888; min-height: 40px; margin-bottom: 30px; line-height: 1.5; }
         .controls { display: flex; flex-direction: column; gap: 15px; align-items: center; }
-        button { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 15px 30px; font-family: 'Roboto Mono', monospace; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; width: 100%; max-width: 300px; touch-action: none; }
-        button:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.8); }
+        
+        button { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.3); padding: 15px 30px; font-family: 'Roboto Mono', monospace; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; border-radius: 8px; transition: all 0.2s ease; width: 100%; max-width: 300px; }
+        
+        /* Кнопка в обычном режиме */
         #talkBtn { border: 2px solid rgba(180, 150, 120, 0.5); color: #d4c5b9; padding: 25px; font-size: 16px; border-radius: 50px; }
-        #talkBtn:active, #talkBtn.recording { background: rgba(180, 150, 120, 0.2); border-color: #d4c5b9; box-shadow: 0 0 20px rgba(180, 150, 120, 0.4); transform: scale(0.98); }
+        
+        /* Кнопка в режиме прослушивания (тот же цвет, но ярче, без красного) */
+        #talkBtn.listening { 
+            background: rgba(180, 150, 120, 0.15); 
+            border-color: rgba(180, 150, 120, 0.9); 
+            box-shadow: 0 0 25px rgba(180, 150, 120, 0.5); 
+            color: #fff; 
+        }
+        
         #windowModeBtn { font-size: 11px; padding: 10px; border-color: rgba(255, 255, 255, 0.1); color: #666; }
         #windowModeBtn.active { color: #fff; border-color: #fff; }
         #game-board { display: none; grid-template-columns: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 20px; }
@@ -37,9 +54,9 @@
 
     <div class="container">
         <h1>J.A.R.V.I.S.</h1>
-        <div id="status">Ожидание команды...</div>
+        <div id="status">Нажми кнопку и говори</div>
         <div class="controls">
-            <button id="talkBtn">ЗАЖМИ И ГОВОРИ</button>
+            <button id="talkBtn">НАЖМИ И ГОВОРИ</button>
             <button id="windowModeBtn">Режим окон: ВЫКЛ</button>
         </div>
         <div id="game-board">
@@ -58,22 +75,11 @@
         const cells = document.querySelectorAll('.cell');
 
         let isWindowMode = false;
+        let isListening = false;
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const synth = window.speechSynthesis;
         let isGameActive = false;
         let board = ["", "", "", "", "", "", "", "", ""];
-
-        // Разблокировка звука (iOS)
-        let audioUnlocked = false;
-        function unlockAudio() {
-            if (!audioUnlocked) {
-                // Создаем пустой звук и проигрываем его
-                const silentUtterance = new SpeechSynthesisUtterance('');
-                silentUtterance.volume = 0;
-                synth.speak(silentUtterance);
-                audioUnlocked = true;
-            }
-        }
 
         windowModeBtn.addEventListener('click', () => {
             isWindowMode = !isWindowMode;
@@ -96,7 +102,6 @@
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ru-RU';
             
-            // Ищем русский голос
             const voices = synth.getVoices();
             const ruVoice = voices.find(v => v.lang.includes('ru'));
             if (ruVoice) utterance.voice = ruVoice;
@@ -107,7 +112,7 @@
             };
             utterance.onend = () => {
                 jarvisIcon.classList.remove('active');
-                statusText.textContent = "Ожидание команды...";
+                if(!isListening) statusText.textContent = "Ожидание...";
             };
             
             synth.speak(utterance);
@@ -117,91 +122,72 @@
             const recognition = new SpeechRecognition();
             recognition.lang = 'ru-RU';
             recognition.interimResults = false;
+            recognition.continuous = false;
 
-            function startRecording(e) {
-                if (e) e.preventDefault();
-                
-                // Говорим "Слушаю" при нажатии, чтобы разбудить звук на iPhone
-                unlockAudio();
-                speak("Слушаю");
-
-                try { 
-                    recognition.start(); 
-                    talkBtn.classList.add('recording'); 
-                    talkBtn.textContent = "СЛУШАЮ..."; 
-                    jarvisIcon.classList.add('active'); 
-                } catch(err) {}
-            }
-            
-            function stopRecording(e) {
-                if (e) e.preventDefault();
-                try { 
-                    recognition.stop(); 
-                    talkBtn.classList.remove('recording'); 
-                    talkBtn.textContent = "ЗАЖМИ И ГОВОРИ"; 
-                } catch(err) {}
-            }
-
-            talkBtn.addEventListener('mousedown', startRecording);
-            talkBtn.addEventListener('mouseup', stopRecording);
-            talkBtn.addEventListener('mouseleave', stopRecording);
-            talkBtn.addEventListener('touchstart', startRecording, {passive: false});
-            talkBtn.addEventListener('touchend', stopRecording);
+            talkBtn.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    isListening = false;
+                    talkBtn.textContent = "НАЖМИ И ГОВОРИ";
+                    talkBtn.classList.remove('listening');
+                    statusText.textContent = "Обрабатываю...";
+                    jarvisIcon.classList.remove('active');
+                } else {
+                    try {
+                        recognition.start();
+                        isListening = true;
+                        talkBtn.textContent = "ГОВОРИ... (СТОП)";
+                        talkBtn.classList.add('listening');
+                        statusText.textContent = "Слушаю тебя...";
+                        jarvisIcon.classList.add('active');
+                        
+                        const unlock = new SpeechSynthesisUtterance('');
+                        unlock.volume = 0;
+                        synth.speak(unlock);
+                    } catch(e) {
+                        statusText.textContent = "Ошибка. Подожди секунду.";
+                    }
+                }
+            });
 
             recognition.onresult = (event) => {
                 let command = event.results[0][0].transcript.toLowerCase();
                 statusText.textContent = `Вы: "${command}"`;
+                isListening = false;
+                talkBtn.textContent = "НАЖМИ И ГОВОРИ";
+                talkBtn.classList.remove('listening');
+                jarvisIcon.classList.remove('active'); // Выключаем свечение после ответа
 
                 if (command.includes('привет') || command.includes('здравствуй')) {
                     speak("Здравствуйте, сэр. Системы в норме.");
                 }
                 else if (command.includes('включи видео') || command.includes('найди видео')) {
                     let videoName = command.replace('джарвис', '').replace('включи видео', '').replace('найди видео', '').replace('на ютубе', '').replace('в ютубе', '').trim();
-                    if (videoName) {
-                        speak(`Ищу видео ${videoName} на ютубе.`);
-                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2500);
-                    } else { speak("Какое видео найти?"); }
+                    if (videoName) { speak(`Ищу видео ${videoName}.`); setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(videoName)}`); }, 2500); } else { speak("Какое видео?"); }
                 }
                 else if (command.includes('открой канал')) {
                     let channelName = command.replace('джарвис', '').replace('открой канал', '').replace('на ютубе', '').trim();
-                    if (channelName) {
-                        speak(`Открываю канал ${channelName}.`);
-                        setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2500);
-                    } else { speak("Какой канал открыть?"); }
+                    if (channelName) { speak(`Открываю канал ${channelName}.`); setTimeout(() => { openLink(`https://www.youtube.com/results?search_query=${encodeURIComponent(channelName)}&sp=EgIQAg%253D%253D`); }, 2500); } else { speak("Какой канал?"); }
                 }
                 else if (command.includes('видео в вк')) {
                     let vkVideo = command.replace('джарвис', '').replace('видео в вк', '').trim();
-                    if (vkVideo) {
-                        speak(`Ищу видео ${vkVideo} во ВКонтакте.`);
-                        setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2500);
-                    } else { speak("Какое видео искать?"); }
+                    if (vkVideo) { speak(`Ищу ${vkVideo} во ВКонтакте.`); setTimeout(() => { openLink(`https://vk.com/video?q=${encodeURIComponent(vkVideo)}`); }, 2500); } else { speak("Какое видео?"); }
                 }
                 else if (command.includes('рутуб')) {
                     let rutubeSearch = command.replace('джарвис', '').replace('открой рутуб', '').replace('найди на рутубе', '').replace('рутуб', '').trim();
-                    if (rutubeSearch) {
-                        speak(`Ищу ${rutubeSearch} на Рутубе.`);
-                        setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2500);
-                    } else { speak("Открываю Рутуб."); openLink('https://rutube.ru'); }
+                    if (rutubeSearch) { speak(`Ищу ${rutubeSearch} на Рутубе.`); setTimeout(() => { openLink(`https://rutube.ru/search/?query=${encodeURIComponent(rutubeSearch)}`); }, 2500); } else { speak("Открываю Рутуб."); openLink('https://rutube.ru'); }
                 }
                 else if (command.includes('открой ютуб')) { speak("Открываю."); openLink('https://youtube.com'); }
                 else if (command.includes('открой вк')) { speak("Открываю."); openLink('https://vk.com'); }
                 else if (command.includes('расскажи о') || command.includes('расскажи про') || command.includes('что такое')) {
                     let topic = command.replace('джарвис', '').replace('расскажи о', '').replace('расскажи про', '').replace('что такое', '').trim();
-                    if (topic) {
-                        speak(`Открываю информацию.`);
-                        setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2500);
-                    } else { speak("О чем рассказать?"); }
+                    if (topic) { speak(`Открываю информацию.`); setTimeout(() => { openLink(`https://yandex.ru/search/?text=${encodeURIComponent(topic)}`); }, 2500); } else { speak("О чем рассказать?"); }
                 }
                 else if (command.includes('включи музыку')) {
                     let song = command.replace('джарвис', '').replace('включи музыку', '').trim();
-                    if (song) {
-                        speak(`Ищу ${song}.`);
-                        setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2500);
-                    } else { speak("Какую песню включить?"); }
+                    if (song) { speak(`Ищу ${song}.`); setTimeout(() => { openLink(`https://music.yandex.ru/search?text=${encodeURIComponent(song)}`); }, 2500); } else { speak("Какую песню?"); }
                 }
-                else if (command.includes('время')) { 
-                    speak(`Сейчас ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`); 
-                }
+                else if (command.includes('время')) { speak(`Сейчас ${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`); }
                 else if (command.includes('кубик')) { speak(`Выпало ${Math.floor(Math.random() * 6) + 1}`); }
                 else if (command.includes('поиграем') || command.includes('крестики-нолики')) { 
                     board = ["", "", "", "", "", "", "", "", ""]; isGameActive = true;
@@ -211,15 +197,9 @@
                 }
                 else if (isGameActive) {
                     let index = -1;
-                    if (command.includes('верхняя левая')) index = 0;
-                    else if (command.includes('верхняя средняя')) index = 1;
-                    else if (command.includes('верхняя правая')) index = 2;
-                    else if (command.includes('средняя левая')) index = 3;
-                    else if (command.includes('центр')) index = 4;
-                    else if (command.includes('средняя правая')) index = 5;
-                    else if (command.includes('нижняя левая')) index = 6;
-                    else if (command.includes('нижняя средняя')) index = 7;
-                    else if (command.includes('нижняя правая')) index = 8;
+                    if (command.includes('верхняя левая')) index = 0; else if (command.includes('верхняя средняя')) index = 1; else if (command.includes('верхняя правая')) index = 2;
+                    else if (command.includes('средняя левая')) index = 3; else if (command.includes('центр')) index = 4; else if (command.includes('средняя правая')) index = 5;
+                    else if (command.includes('нижняя левая')) index = 6; else if (command.includes('нижняя средняя')) index = 7; else if (command.includes('нижняя правая')) index = 8;
 
                     if (index !== -1 && board[index] === "") {
                         board[index] = "X"; cells[index].textContent = "X";
@@ -227,14 +207,28 @@
                         checkGameEnd();
                     }
                 }
-                else { speak("Команда не распознана."); }
+                else { speak("Не распознал."); }
             };
-            recognition.onerror = () => { 
-                talkBtn.classList.remove('recording'); 
-                talkBtn.textContent = "ЗАЖМИ И ГОВОРИ"; 
+            
+            recognition.onerror = (event) => { 
+                isListening = false;
+                talkBtn.classList.remove('listening'); 
+                talkBtn.textContent = "НАЖМИ И ГОВОРИ"; 
                 jarvisIcon.classList.remove('active');
-                statusText.textContent = "Ошибка микрофона. Нажми еще раз.";
+                if (event.error === 'not-allowed') {
+                    statusText.textContent = "Разреши доступ к микрофону!";
+                } else {
+                    statusText.textContent = "Ошибка. Нажми еще раз.";
+                }
             };
+            recognition.onend = () => {
+                if(isListening) {
+                    isListening = false;
+                    talkBtn.classList.remove('listening'); 
+                    talkBtn.textContent = "НАЖМИ И ГОВОРИ"; 
+                    jarvisIcon.classList.remove('active');
+                }
+            }
         }
 
         function makeAiMove() {
