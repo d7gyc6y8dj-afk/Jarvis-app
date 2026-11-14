@@ -34,6 +34,7 @@
             color: #fff; 
         }
         
+        #openBtn { display: none; box-sizing: border-box; text-decoration: none; text-align: center; color: #fff; background: rgba(180, 150, 120, 0.25); border: 2px solid rgba(180, 150, 120, 0.9); padding: 15px 30px; font-size: 14px; letter-spacing: 2px; border-radius: 8px; width: 100%; max-width: 300px; }
         #windowModeBtn { font-size: 11px; padding: 10px; border-color: rgba(255, 255, 255, 0.1); color: #666; }
         #windowModeBtn.active { color: #fff; border-color: #fff; }
         #game-board { display: none; grid-template-columns: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 20px; }
@@ -52,6 +53,7 @@
         <div id="status">Нажми кнопку и говори</div>
         <div class="controls">
             <button id="talkBtn">НАЖМИ И ГОВОРИ</button>
+            <a id="openBtn" href="#" target="_blank" rel="noopener">ОТКРЫТЬ</a>
             <button id="windowModeBtn">Режим окон: ВЫКЛ</button>
         </div>
         <div id="game-board">
@@ -68,6 +70,7 @@
         const jarvisIcon = document.getElementById('jarvisIcon');
         const gameBoard = document.getElementById('game-board');
         const cells = document.querySelectorAll('.cell');
+        const openBtn = document.getElementById('openBtn');
 
         let isWindowMode = false;
         let isListening = false;
@@ -84,12 +87,28 @@
         });
 
         function openLink(url) {
-            if (isWindowMode) {
-                window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes');
+            let win = null;
+            try {
+                if (isWindowMode) {
+                    win = window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes');
+                } else {
+                    win = window.open(url, '_blank');
+                }
+            } catch (e) { win = null; }
+
+            // Если браузер заблокировал окно, показываем кнопку: нажатие на неё браузер разрешает
+            if (!win) {
+                openBtn.href = url;
+                openBtn.style.display = 'block';
+                setTimeout(() => { statusText.textContent = "Браузер заблокировал окно. Нажми «ОТКРЫТЬ»."; }, 50);
             } else {
-                window.open(url, '_blank');
+                openBtn.style.display = 'none';
             }
         }
+
+        openBtn.addEventListener('click', () => {
+            setTimeout(() => { openBtn.style.display = 'none'; }, 100);
+        });
 
         function speak(text) {
             synth.cancel();
@@ -114,7 +133,7 @@
             };
             utterance.onend = () => {
                 jarvisIcon.classList.remove('active');
-                if(!isListening) statusText.textContent = "Ожидание...";
+                if(!isListening) statusText.textContent = openBtn.style.display === 'block' ? "Браузер заблокировал окно. Нажми «ОТКРЫТЬ»." : "Ожидание...";
             };
             synth.speak(utterance);
         }
