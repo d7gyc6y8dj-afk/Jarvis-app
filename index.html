@@ -54,7 +54,7 @@
         <div class="controls">
             <button id="talkBtn">НАЖМИ И ГОВОРИ</button>
             <a id="openBtn" href="#" target="_blank" rel="noopener">ОТКРЫТЬ</a>
-            <button id="windowModeBtn">Режим окон: ВЫКЛ</button>
+            <button id="windowModeBtn" class="active">Режим окон: ВКЛ</button>
         </div>
         <div id="game-board">
             <div class="cell" data-index="0"></div><div class="cell" data-index="1"></div><div class="cell" data-index="2"></div>
@@ -72,7 +72,7 @@
         const cells = document.querySelectorAll('.cell');
         const openBtn = document.getElementById('openBtn');
 
-        let isWindowMode = false;
+        let isWindowMode = true;
         let isListening = false;
         let isGameActive = false;
         let board = ["", "", "", "", "", "", "", "", ""];
@@ -125,7 +125,7 @@
             else if (ruVoices.length > 0) utterance.voice = ruVoices[0];
 
             utterance.pitch = 0.8; 
-            utterance.rate = 0.9;  
+            utterance.rate = 1.15;  
 
             utterance.onstart = () => {
                 jarvisIcon.classList.add('active');
