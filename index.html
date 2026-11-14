@@ -46,8 +46,11 @@
         body.game-mode #status { margin-bottom: 15px; min-height: 20px; }
 
         /* Анимация кубика и монетки */
-        #rollArea { position: fixed; left: 50%; bottom: calc(30px + env(safe-area-inset-bottom)); transform: translate(-50%, 150%); opacity: 0; transition: transform 0.4s ease, opacity 0.4s ease; z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; }
-        #rollArea.show { transform: translate(-50%, 0); opacity: 1; }
+        body.rolling { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+        #rollArea { display: none; flex-direction: column; align-items: center; gap: 12px; margin-top: 25px; padding: 20px 0 5px; }
+        #rollArea.show { display: flex; -webkit-animation: rollIn 0.35s ease-out; animation: rollIn 0.35s ease-out; }
+        @-webkit-keyframes rollIn { from { opacity: 0; -webkit-transform: translateY(30px); } to { opacity: 1; -webkit-transform: translateY(0); } }
+        @keyframes rollIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         #rollResult { font-size: 14px; letter-spacing: 3px; color: #d4c5b9; min-height: 18px; text-transform: uppercase; }
         .dice { width: 80px; height: 80px; background: #f2ebe4; border-radius: 16px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 10px; box-sizing: border-box; box-shadow: 0 0 25px rgba(180, 150, 120, 0.6); }
         .dice .pip { width: 14px; height: 14px; border-radius: 50%; background: #111; align-self: center; justify-self: center; visibility: hidden; }
@@ -60,6 +63,10 @@
         .coin.flipping { animation: coinFlip 0.25s linear infinite; }
         @keyframes coinFlip { 0% { transform: rotateX(0deg) translateY(0); } 50% { transform: rotateX(180deg) translateY(-30px); } 100% { transform: rotateX(360deg) translateY(0); } }
         .coin.landed { animation: land 0.3s ease-out; }
+
+        #weatherCard { display: none; margin-top: 20px; padding: 15px; border: 1px solid rgba(180, 150, 120, 0.4); border-radius: 12px; background: rgba(180, 150, 120, 0.08); text-align: left; font-size: 13px; line-height: 1.6; color: #d4c5b9; }
+        #weatherCard .w-city { font-size: 15px; color: #fff; letter-spacing: 1px; }
+        #weatherCard .w-temp { font-size: 30px; color: #fff; font-weight: 300; margin: 4px 0; }
 
         #game-board { display: none; grid-template-columns: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 20px; }
         .cell { width: 60px; height: 60px; background: #111; border: 1px solid rgba(255,255,255,0.1); font-size: 24px; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
@@ -80,6 +87,11 @@
             <a id="openBtn" href="#" target="_blank" rel="noopener">ОТКРЫТЬ</a>
             <button id="windowModeBtn" class="active">Режим окон: ВКЛ</button>
         </div>
+        <div id="rollArea">
+            <div id="rollObject"></div>
+            <div id="rollResult"></div>
+        </div>
+        <div id="weatherCard"></div>
         <div id="game-board">
             <div class="cell" data-index="0"></div><div class="cell" data-index="1"></div><div class="cell" data-index="2"></div>
             <div class="cell" data-index="3"></div><div class="cell" data-index="4"></div><div class="cell" data-index="5"></div>
@@ -87,10 +99,6 @@
         </div>
     </div>
 
-    <div id="rollArea">
-        <div id="rollObject"></div>
-        <div id="rollResult"></div>
-    </div>
 
     <script>
         const talkBtn = document.getElementById('talkBtn');
@@ -102,6 +110,7 @@
         const openBtn = document.getElementById('openBtn');
 
         let isWindowMode = true;
+        let afterSpeechStatus = '';
         let isListening = false;
         let isGameActive = false;
         let board = ["", "", "", "", "", "", "", "", ""];
@@ -162,7 +171,8 @@
             };
             utterance.onend = () => {
                 jarvisIcon.classList.remove('active');
-                if(!isListening) statusText.textContent = openBtn.style.display === 'block' ? "Браузер заблокировал окно. Нажми «ОТКРЫТЬ»." : "Ожидание...";
+                if(!isListening) statusText.textContent = afterSpeechStatus || (openBtn.style.display === 'block' ? "Браузер заблокировал окно. Нажми «ОТКРЫТЬ»." : "Ожидание...");
+                afterSpeechStatus = '';
             };
             synth.speak(utterance);
         }
@@ -205,8 +215,7 @@
                 // --- КОМАНДЫ БЕЗ ЗАДЕРЖКИ ---
 
                 if (command.includes('погода') || command.includes('погоду')) {
-                    speak("Открываю прогноз погоды в Анадыре.");
-                    openLink('https://yandex.ru/pogoda/anadyr');
+                    showWeatherByLocation();
                 }
                 else if (command.includes('привет') || command.includes('здравствуй')) {
                     speak("Здравствуйте, сэр. Системы в норме.");
@@ -300,6 +309,87 @@
             synth.onvoiceschanged = () => synth.getVoices();
         }
 
+        // --- ПОГОДА ПО ГЕОЛОКАЦИИ ---
+        const weatherCard = document.getElementById('weatherCard');
+        const WEATHER_CODES = {
+            0: 'ясно', 1: 'преимущественно ясно', 2: 'переменная облачность', 3: 'пасмурно',
+            45: 'туман', 48: 'туман с изморозью',
+            51: 'слабая морось', 53: 'морось', 55: 'сильная морось', 56: 'ледяная морось', 57: 'сильная ледяная морось',
+            61: 'небольшой дождь', 63: 'дождь', 65: 'сильный дождь', 66: 'ледяной дождь', 67: 'сильный ледяной дождь',
+            71: 'небольшой снег', 73: 'снег', 75: 'сильный снег', 77: 'снежная крупа',
+            80: 'небольшой ливень', 81: 'ливень', 82: 'сильный ливень', 85: 'небольшой снегопад', 86: 'сильный снегопад',
+            95: 'гроза', 96: 'гроза с градом', 99: 'сильная гроза с градом'
+        };
+
+        function degWord(n) {
+            n = Math.abs(n) % 100; const n1 = n % 10;
+            if (n > 10 && n < 20) return 'градусов';
+            if (n1 === 1) return 'градус';
+            if (n1 >= 2 && n1 <= 4) return 'градуса';
+            return 'градусов';
+        }
+
+        function weatherFallback(reason) {
+            weatherCard.style.display = 'none';
+            speak(reason + " Открываю прогноз погоды в Анадыре.");
+            openLink('https://yandex.ru/pogoda/anadyr');
+        }
+
+        function showWeatherByLocation() {
+            if (!navigator.geolocation) { weatherFallback("Геолокация недоступна."); return; }
+            statusText.textContent = "Определяю местоположение...";
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude.toFixed(4);
+                const lon = pos.coords.longitude.toFixed(4);
+                try {
+                    const [wRes, gRes] = await Promise.all([
+                        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&wind_speed_unit=ms&timezone=auto&forecast_days=1`),
+                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ru`).catch(() => null)
+                    ]);
+                    const w = await wRes.json();
+                    let city = '';
+                    if (gRes && gRes.ok) {
+                        const g = await gRes.json();
+                        city = (g.city || g.locality || '').replace(/^городской округ\s+/i, '').trim();
+                    }
+                    const t = Math.round(w.current.temperature_2m);
+                    const feels = Math.round(w.current.apparent_temperature);
+                    const wind = Math.round(w.current.wind_speed_10m);
+                    const desc = WEATHER_CODES[w.current.weather_code] || '';
+                    const tMax = Math.round(w.daily.temperature_2m_max[0]);
+                    const tMin = Math.round(w.daily.temperature_2m_min[0]);
+                    const sign = n => (n > 0 ? '+' : '') + n;
+
+                    weatherCard.innerHTML = `
+                        <div class="w-city">${city || 'Ваше местоположение'}</div>
+                        <div class="w-temp">${sign(t)}°C</div>
+                        <div>${desc ? desc.charAt(0).toUpperCase() + desc.slice(1) : ''}</div>
+                        <div>Ощущается как ${sign(feels)}°C · ветер ${wind} м/с</div>
+                        <div>Сегодня от ${sign(tMin)}° до ${sign(tMax)}°</div>`;
+                    weatherCard.style.display = 'block';
+                    afterSpeechStatus = city ? `Погода: ${city}` : 'Погода по вашему местоположению';
+                    statusText.textContent = afterSpeechStatus;
+                    setTimeout(() => { weatherCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+
+                    const where = city ? `В городе ${city}` : 'У вас';
+                    speak(`${where} сейчас ${t} ${degWord(t)}, ${desc}. Ощущается как ${feels}. Ветер ${wind} ${wind % 10 === 1 && wind % 100 !== 11 ? 'метр' : (wind % 10 >= 2 && wind % 10 <= 4 && (wind % 100 < 10 || wind % 100 >= 20) ? 'метра' : 'метров')} в секунду.`);
+                    openLink(`https://yandex.ru/pogoda/?lat=${lat}&lon=${lon}`);
+                } catch (e) {
+                    weatherCard.style.display = 'none';
+                    speak("Не удалось получить прогноз. Открываю погоду по вашему местоположению.");
+                    openLink(`https://yandex.ru/pogoda/?lat=${lat}&lon=${lon}`);
+                }
+            }, (err) => {
+                if (err.code === 1) {
+                    weatherCard.style.display = 'none';
+                    afterSpeechStatus = "Нет доступа к геолокации. Включите её в настройках и скажите «погода» ещё раз.";
+                    statusText.textContent = afterSpeechStatus;
+                    speak("Нет доступа к геолокации. Включите, пожалуйста.");
+                }
+                else weatherFallback("Не удалось определить местоположение.");
+            }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+        }
+
         // --- КУБИК И МОНЕТКА С АНИМАЦИЕЙ ---
         const rollArea = document.getElementById('rollArea');
         const rollObject = document.getElementById('rollObject');
@@ -320,12 +410,14 @@
             clearInterval(rollTimer); clearTimeout(hideTimer);
             rollResult.textContent = '';
             rollArea.classList.add('show');
+            document.body.classList.add('rolling');
+            setTimeout(() => { rollArea.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
         }
 
         function finishRoll(text) {
             rollResult.textContent = text;
             speak(text);
-            hideTimer = setTimeout(() => { rollArea.classList.remove('show'); }, 4000);
+            hideTimer = setTimeout(() => { rollArea.classList.remove('show'); document.body.classList.remove('rolling'); }, 4000);
         }
 
         function rollDice() {
