@@ -52,17 +52,34 @@
         @-webkit-keyframes rollIn { from { opacity: 0; -webkit-transform: translateY(30px); } to { opacity: 1; -webkit-transform: translateY(0); } }
         @keyframes rollIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         #rollResult { font-size: 14px; letter-spacing: 3px; color: #d4c5b9; min-height: 18px; text-transform: uppercase; }
-        .dice { width: 80px; height: 80px; background: #f2ebe4; border-radius: 16px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 10px; box-sizing: border-box; box-shadow: 0 0 25px rgba(180, 150, 120, 0.6); }
-        .dice .pip { width: 14px; height: 14px; border-radius: 50%; background: #111; align-self: center; justify-self: center; visibility: hidden; }
-        .dice .pip.on { visibility: visible; }
-        .dice.rolling { animation: diceRoll 0.35s linear infinite; }
-        @keyframes diceRoll { 0% { transform: rotate(0deg) translateY(0); } 25% { transform: rotate(90deg) translateY(-25px); } 50% { transform: rotate(180deg) translateY(0); } 75% { transform: rotate(270deg) translateY(-15px); } 100% { transform: rotate(360deg) translateY(0); } }
-        .dice.landed { animation: land 0.3s ease-out; }
-        @keyframes land { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
-        .coin { width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f5d98b, #b8862b 70%, #7a5615); border: 3px solid #e6c36a; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #4a3208; box-shadow: 0 0 25px rgba(230, 195, 106, 0.6); }
-        .coin.flipping { animation: coinFlip 0.25s linear infinite; }
-        @keyframes coinFlip { 0% { transform: rotateX(0deg) translateY(0); } 50% { transform: rotateX(180deg) translateY(-30px); } 100% { transform: rotateX(360deg) translateY(0); } }
-        .coin.landed { animation: land 0.3s ease-out; }
+        /* 3D-кубик */
+        .scene { width: 120px; height: 140px; -webkit-perspective: 600px; perspective: 600px; display: flex; align-items: flex-end; justify-content: center; }
+        .toss { width: 80px; height: 80px; -webkit-transform-style: preserve-3d; transform-style: preserve-3d; }
+        .toss.jump { -webkit-animation: tossJump 1.6s cubic-bezier(.3,.6,.4,1) both; animation: tossJump 1.6s cubic-bezier(.3,.6,.4,1) both; }
+        @-webkit-keyframes tossJump { 0% { -webkit-transform: translateY(0); } 30% { -webkit-transform: translateY(-55px); } 60% { -webkit-transform: translateY(0); } 72% { -webkit-transform: translateY(-14px); } 84% { -webkit-transform: translateY(0); } 92% { -webkit-transform: translateY(-4px); } 100% { -webkit-transform: translateY(0); } }
+        @keyframes tossJump { 0% { transform: translateY(0); } 30% { transform: translateY(-55px); } 60% { transform: translateY(0); } 72% { transform: translateY(-14px); } 84% { transform: translateY(0); } 92% { transform: translateY(-4px); } 100% { transform: translateY(0); } }
+        .cube { position: relative; width: 80px; height: 80px; -webkit-transform-style: preserve-3d; transform-style: preserve-3d; }
+        .cube.spin { -webkit-transition: -webkit-transform 1.6s cubic-bezier(.2,.7,.25,1); transition: transform 1.6s cubic-bezier(.2,.7,.25,1); }
+        .cube .face { position: absolute; width: 80px; height: 80px; box-sizing: border-box; padding: 10px; border-radius: 14px; background: radial-gradient(circle at 30% 30%, #ffffff, #e9e0d6); border: 1px solid #cbbfb2; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); -webkit-backface-visibility: hidden; backface-visibility: hidden; box-shadow: inset 0 0 12px rgba(0,0,0,0.15); }
+        .cube .pip { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #444, #000); align-self: center; justify-self: center; visibility: hidden; }
+        .cube .pip.on { visibility: visible; }
+        .cube .f1 { -webkit-transform: translateZ(40px); transform: translateZ(40px); }
+        .cube .f6 { -webkit-transform: rotateY(180deg) translateZ(40px); transform: rotateY(180deg) translateZ(40px); }
+        .cube .f3 { -webkit-transform: rotateY(90deg) translateZ(40px); transform: rotateY(90deg) translateZ(40px); }
+        .cube .f4 { -webkit-transform: rotateY(-90deg) translateZ(40px); transform: rotateY(-90deg) translateZ(40px); }
+        .cube .f2 { -webkit-transform: rotateX(90deg) translateZ(40px); transform: rotateX(90deg) translateZ(40px); }
+        .cube .f5 { -webkit-transform: rotateX(-90deg) translateZ(40px); transform: rotateX(-90deg) translateZ(40px); }
+        .shadow3d { width: 70px; height: 12px; margin: 6px auto 0; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(180,150,120,0.45), transparent 70%); }
+
+        /* 3D-монетка */
+        .coin3d { position: relative; width: 90px; height: 90px; -webkit-transform-style: preserve-3d; transform-style: preserve-3d; }
+        .coin3d.spin { -webkit-transition: -webkit-transform 1.6s cubic-bezier(.25,.6,.3,1); transition: transform 1.6s cubic-bezier(.25,.6,.3,1); }
+        .coin3d .side, .coin3d .edge { position: absolute; left: 0; top: 0; width: 90px; height: 90px; border-radius: 50%; box-sizing: border-box; }
+        .coin3d .side { background: radial-gradient(circle at 35% 30%, #fff1b8, #e3b64a 45%, #a8771f 85%); border: 4px solid #c99a35; box-shadow: inset 0 0 0 3px rgba(255,240,190,0.5), inset 0 0 14px rgba(90,60,10,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #5a3d08; font-size: 11px; font-weight: 700; letter-spacing: 1px; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+        .coin3d .side svg { width: 36px; height: 36px; margin-bottom: 2px; }
+        .coin3d .heads { -webkit-transform: translateZ(4px); transform: translateZ(4px); }
+        .coin3d .tails { -webkit-transform: rotateX(180deg) translateZ(4px); transform: rotateX(180deg) translateZ(4px); }
+        .coin3d .edge { background: linear-gradient(90deg, #7a5615, #c99a35, #7a5615); border: 1px solid #6b4a10; }
 
         #weatherCard { display: none; margin-top: 20px; padding: 15px; border: 1px solid rgba(180, 150, 120, 0.4); border-radius: 12px; background: rgba(180, 150, 120, 0.08); text-align: left; font-size: 13px; line-height: 1.6; color: #d4c5b9; }
         #weatherCard .w-city { font-size: 15px; color: #fff; letter-spacing: 1px; }
@@ -395,19 +412,38 @@
         const rollObject = document.getElementById('rollObject');
         const rollResult = document.getElementById('rollResult');
         const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+        // Поворот куба, при котором нужная грань смотрит на зрителя
+        const FACE_ROT = { 1: [0, 0], 2: [-90, 0], 3: [0, -90], 4: [0, 90], 5: [90, 0], 6: [0, 180] };
         let rollTimer = null, hideTimer = null;
+        window.__lastRoll = null;
 
-        function drawDice(n) {
-            rollObject.innerHTML = '';
-            for (let i = 0; i < 9; i++) {
-                const pip = document.createElement('div');
-                pip.className = 'pip' + (PIPS[n].includes(i) ? ' on' : '');
-                rollObject.appendChild(pip);
+        function setTransform(el, t) { el.style.webkitTransform = t; el.style.transform = t; }
+
+        function buildDice() {
+            let html = '<div class="scene"><div class="toss"><div class="cube">';
+            for (let n = 1; n <= 6; n++) {
+                html += `<div class="face f${n}">`;
+                for (let i = 0; i < 9; i++) html += `<div class="pip${PIPS[n].includes(i) ? ' on' : ''}"></div>`;
+                html += '</div>';
             }
+            html += '</div></div></div><div class="shadow3d"></div>';
+            rollObject.innerHTML = html;
+        }
+
+        const EAGLE_SVG = '<svg viewBox="0 0 40 40" fill="#5a3d08"><path d="M20 6l2.5 4 4-2-1 4.5 4.5-1-3 4 5 1-5 3 2 4.5-5-2-1.5 6.5L20 34l-2.5-6.5L16 21.5l-5 2 2-4.5-5-3 5-1-3-4 4.5 1-1-4.5 4 2z"/></svg>';
+        const TAILS_SVG = '<svg viewBox="0 0 40 40" fill="none" stroke="#5a3d08" stroke-width="2.5"><circle cx="20" cy="20" r="14"/><text x="20" y="26" text-anchor="middle" font-size="17" font-weight="700" fill="#5a3d08" stroke="none" font-family="Roboto Mono, monospace">1</text></svg>';
+
+        function buildCoin() {
+            let html = '<div class="scene"><div class="toss"><div class="coin3d">';
+            for (let z = -3; z <= 3; z++) html += `<div class="edge" style="-webkit-transform: translateZ(${z}px); transform: translateZ(${z}px);"></div>`;
+            html += `<div class="side heads">${EAGLE_SVG}ОРЁЛ</div>`;
+            html += `<div class="side tails">${TAILS_SVG}РЕШКА</div>`;
+            html += '</div></div></div><div class="shadow3d"></div>';
+            rollObject.innerHTML = html;
         }
 
         function startRoll() {
-            clearInterval(rollTimer); clearTimeout(hideTimer);
+            clearTimeout(rollTimer); clearTimeout(hideTimer);
             rollResult.textContent = '';
             rollArea.classList.add('show');
             document.body.classList.add('rolling');
@@ -420,33 +456,54 @@
             hideTimer = setTimeout(() => { rollArea.classList.remove('show'); document.body.classList.remove('rolling'); }, 4000);
         }
 
+        function launch(el, finalTransform, onDone) {
+            const toss = rollObject.querySelector('.toss');
+            setTransform(el, 'rotateX(-20deg) rotateY(20deg)');
+            void el.offsetWidth;
+            requestAnimationFrame(() => {
+                el.classList.add('spin');
+                toss.classList.add('jump');
+                setTransform(el, finalTransform);
+                rollTimer = setTimeout(onDone, 1650);
+            });
+        }
+
         function rollDice() {
             const result = Math.floor(Math.random() * 6) + 1;
+            window.__lastRoll = result;
             startRoll();
-            rollObject.className = 'dice rolling';
-            drawDice(1);
-            rollTimer = setInterval(() => { drawDice(Math.floor(Math.random() * 6) + 1); }, 100);
-            setTimeout(() => {
-                clearInterval(rollTimer);
-                drawDice(result);
-                rollObject.className = 'dice landed';
+            buildDice();
+            const cube = rollObject.querySelector('.cube');
+            const [rx, ry] = FACE_ROT[result];
+            const turnsX = 360 * (2 + Math.floor(Math.random() * 2));
+            const turnsY = 360 * (2 + Math.floor(Math.random() * 2));
+            const turnsZ = 360 * (1 + Math.floor(Math.random() * 2));
+            launch(cube, `rotateX(${rx + turnsX}deg) rotateY(${ry + turnsY}deg) rotateZ(${turnsZ}deg)`, () => {
+                // Оставляем только выпавшую грань: результат виден правильно даже там, где 3D не поддерживается
+                cube.querySelectorAll('.face').forEach(f => { if (!f.classList.contains('f' + result)) f.style.display = 'none'; });
+                try {
+                    const face = cube.querySelector('.f' + result);
+                    const m = new DOMMatrix(getComputedStyle(cube).transform).multiply(new DOMMatrix(getComputedStyle(face).transform));
+                    cube.classList.remove('spin');
+                    setTransform(cube, 'none');
+                    setTransform(face, m.toString());
+                } catch (e) {}
                 finishRoll(`Выпало ${result}`);
-            }, 1500);
+            });
         }
 
         function flipCoin() {
             const result = Math.random() < 0.5 ? 'Орёл' : 'Решка';
+            window.__lastRoll = result;
             startRoll();
-            rollObject.className = 'coin flipping';
-            rollObject.innerHTML = '';
-            let side = 0;
-            rollTimer = setInterval(() => { side = 1 - side; rollObject.textContent = side ? 'ОРЁЛ' : 'РЕШКА'; }, 125);
-            setTimeout(() => {
-                clearInterval(rollTimer);
-                rollObject.textContent = result.toUpperCase();
-                rollObject.className = 'coin landed';
+            buildCoin();
+            const coin = rollObject.querySelector('.coin3d');
+            const flips = 360 * (4 + Math.floor(Math.random() * 2));
+            const finalX = flips + (result === 'Орёл' ? 0 : 180);
+            launch(coin, `rotateX(${finalX}deg) rotateY(0deg)`, () => {
+                coin.querySelector(result === 'Орёл' ? '.tails' : '.heads').style.display = 'none';
                 finishRoll(result === 'Орёл' ? 'Выпал орёл' : 'Выпала решка');
-            }, 1500);
+            });
         }
 
         function makeAiMove() {
