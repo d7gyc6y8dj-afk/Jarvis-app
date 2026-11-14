@@ -145,7 +145,8 @@
             });
 
             recognition.onresult = (event) => {
-                let command = event.results[0][0].transcript.toLowerCase();
+                let command = event.results[0][0].transcript.toLowerCase().replace(/ё/g, 'е').replace(/[.,!?]/g, '').trim();
+                if (command.includes('крестики нолики')) command = command.replace('крестики нолики', 'крестики-нолики');
                 statusText.textContent = `Вы: "${command}"`;
                 
                 isListening = false;
@@ -223,14 +224,29 @@
                 talkBtn.classList.remove('listening'); 
                 talkBtn.textContent = "НАЖМИ И ГОВОРИ"; 
                 jarvisIcon.classList.remove('active');
-                if (event.error === 'not-allowed') {
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                     statusText.textContent = "Разреши доступ к микрофону!";
+                } else if (event.error === 'audio-capture') {
+                    statusText.textContent = "Микрофон не найден.";
+                } else if (event.error === 'network') {
+                    statusText.textContent = "Нет связи с сервисом распознавания речи. Проверь интернет.";
+                } else if (event.error === 'aborted') {
+                    statusText.textContent = "Нажми кнопку и говори";
                 } else if (event.error === 'no-speech') {
                     statusText.textContent = "Я ничего не услышал. Попробуй еще раз.";
                 } else {
                     statusText.textContent = "Ошибка. Нажми еще раз.";
                 }
             }
+        } else {
+            statusText.textContent = "Этот браузер не поддерживает голосовые команды. Открой сайт в Chrome, Edge или Safari.";
+            talkBtn.addEventListener('click', () => {
+                statusText.textContent = "Этот браузер не поддерживает голосовые команды. Открой сайт в Chrome, Edge или Safari.";
+            });
+        }
+
+        if (synth && synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = () => synth.getVoices();
         }
 
         function makeAiMove() {
